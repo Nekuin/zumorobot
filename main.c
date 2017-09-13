@@ -191,7 +191,8 @@ int main()
             MotorDirRight_Write(1);
             motor_turn(75, 75, delay);
         }
-        
+        // int timer, kun timer on 60 000/1min resettaa timer ja printtaa voltit (miten saada patteri jännite minuutin välein nopeassa
+	// delayssa koska ohjaus
         ADC_Battery_StartConvert();
         if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) {   // wait for get ADC converted value
             adcresult = ADC_Battery_GetResult16();
