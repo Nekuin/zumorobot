@@ -91,41 +91,7 @@ int main()
               BatteryLed_Write(0);
               CyDelay(1000);
         }
-        /*
-        int fspeed = 200;
-        int turnspeed = 100;
-        // test, ajaako robotti?
-        motor_start();
-        motor_forward(0, 0);
-        CyDelay(2500);
-        motor_forward(50, 100);
-        motor_forward(100, 100);
-        motor_forward(150, 100);
-        motor_forward(fspeed, 1900); // eka suora
-        MotorDirRight_Write(1);
-        
-        motor_turn(turnspeed, turnspeed, 495);
-        MotorDirRight_Write(0);
-        motor_forward(fspeed, 2000); // toka suora
-        
-        MotorDirRight_Write(1);
-        motor_turn(turnspeed, turnspeed, 495);
-        
-        MotorDirRight_Write(0);
-        motor_forward(fspeed, 1900); // kolmas suora
-        
-        MotorDirRight_Write(1);
-        motor_turn(turnspeed, turnspeed, 700);
-        MotorDirRight_Write(0);
-        motor_forward(fspeed, 1000); // ennen kulmaa
-        
-        motor_turn(100, fspeed, 1000);
-        
-        motor_forward(100, 500);
-        motor_forward(0, 0); // pysäytä
-        
-        CyDelay(10000);
-        */
+       
         
         struct sensors_ dig;
         struct sensors_ ref;
@@ -134,6 +100,57 @@ int main()
         reflectance_start();
         IR_led_Write(1);
         reflectance_set_threshold(18000,18000,18000,20000);
+        reflectance_read(&ref);
+        printf("%d %d %d %d\n",ref.l3, ref.l1, ref.r1, ref.r3);
+        
+
+        
+        
+        //kalibrointi
+        
+        int l3white = 0;
+        int l1white = 0;
+        int r1white = 0;
+        int r3white = 0;
+        
+        printf("\ninput white\n");
+        while(SW1_Read() >= 1){
+            l3white = ref.l3;
+            l1white = ref.l1;
+            r1white = ref.r1;
+            r3white = ref.r3;
+            BatteryLed_Write(1);
+            CyDelay(100);
+        }
+        BatteryLed_Write(0);
+        printf("\nWhites read\n");
+        CyDelay(500);
+        int l3black = 23999;
+        int l1black = 23999;
+        int r1black = 23999;
+        int r3black = 23999;
+        
+        
+        printf("\ninput black\n");
+        while(SW1_Read() == 1){
+            ref.l3 = l3black;
+            l1black = ref.l1;
+            r1black = ref.r1;
+            r3black = ref.r3;
+            SW1_Read();
+            BatteryLed_Write(1);
+        }
+        printf("\nBlacks read\n");
+        BatteryLed_Write(0);
+        CyDelay(500);
+        
+        int l3avg = (l3black + l3white / 2);
+        int l1avg = (l1black + l1white / 2);
+        int r1avg = (r1black + r1white / 2);
+        int r3avg = (r3black + r3white / 2);
+        
+        
+        int counter = 0;
         for(;;)
         {
         reflectance_digital(&dig);
@@ -141,18 +158,45 @@ int main()
         reflectance_read(&ref);
         printf("%d %d %d %d \r\n", ref.l3, ref.l1, ref.r1, ref.r3);
         // musta = 0, valkoinen = 1
-        CyDelay(10);
+        
         motor_start();
         motor_forward(0, 0);
         MotorDirLeft_Write(0);
         MotorDirRight_Write(0);
         /*
+      
         */
+        
+        counter = counter + 10;
+        
         int tspeed = 25;
         int fspeed = 125;
         int nspeed = 150;
-        int loivaspeed = 150;
-        int delay = 10;
+        int loivaspeed = 125;
+       
+        int delay = 1;
+        // käännös vasen
+        if(ref.l1 < l1white*1.5){ 
+            motor_turn(tspeed, fspeed, delay);
+        }
+        //käännös oikea
+        else if(ref.r1 < 8000){
+            motor_turn(fspeed, tspeed, delay);   
+        }
+        //loiva vasen
+        else if(ref.l1 < l1avg*1.25){
+            motor_turn(loivaspeed, nspeed, delay);          
+        }
+        //loiva oikea
+        else if(ref.r1 < 14000){
+            motor_turn(nspeed, loivaspeed, delay);   
+        }
+        //suoraan
+        else if(ref.l1 > 14000 && ref.r1 > 14000){
+            motor_forward(nspeed, delay);   
+        }
+        
+        /*
          if(dig.l1 == 0 && dig.r1 == 1){ // käännös vasemmalle keskianturit
             motor_turn(80, loivaspeed, delay);   
         }
@@ -191,8 +235,10 @@ int main()
             MotorDirRight_Write(1);
             motor_turn(75, 75, delay);
         }
-        // int timer, kun timer on 60 000/1min resettaa timer ja printtaa voltit (miten saada patteri jännite minuutin välein nopeassa
-	// delayssa koska ohjaus
+        */
+        if(counter > 4000){
+            counter = 0;
+            
         ADC_Battery_StartConvert();
         if(ADC_Battery_IsEndConversion(ADC_Battery_WAIT_FOR_RESULT)) {   // wait for get ADC converted value
             adcresult = ADC_Battery_GetResult16();
@@ -200,9 +246,14 @@ int main()
         
             // If you want to print value
             printf("%d %f\r\n",adcresult, volts * 1.5);
+          }  
+            
+            
             
         }
-        
+        printf("%d \n", counter);
+        if(vbat < 4.0)
+                break;   
         
         }
         
