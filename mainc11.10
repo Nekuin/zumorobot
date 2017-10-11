@@ -159,6 +159,7 @@ int main()
         printf("odota ir\n");
         get_IR();
         
+	motor_forward(200,150);
         
         for(;;)
         {
